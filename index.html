@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Styra — Performance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #06080d;
+    --card: #0d1117;
+    --card2: #111820;
+    --border: #1b2332;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #2f81f7;
+    --accent2: #58a6ff;
+    --green: #3fb950;
+    --green2: #56d364;
+    --gold: #d29922;
+    --red: #f85149;
+    --purple: #a371f7;
+    --orange: #d18616;
+    --teal: #39d353;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    min-height: 100vh;
+  }
+  .container { max-width: 1280px; margin: 0 auto; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+  .header-left { flex: 1; }
+  .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: #fff; }
+  h1 { font-size: 26px; font-weight: 700; }
+  .subtitle { color: var(--muted); font-size: 13px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    background: var(--card); border: 1px solid var(--border); color: var(--muted);
+    padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer;
+    transition: all 0.2s; font-family: inherit;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .last-updated { color: var(--muted); font-size: 10px; margin-top: 4px; text-align: right; }
+
+  /* Stats grid */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .stat-sub { font-size: 12px; margin-top: 3px; }
+  .green { color: var(--green); }
+  .red { color: var(--red); }
+  .gold { color: var(--gold); }
+  .blue { color: var(--accent2); }
+  .purple { color: var(--purple); }
+
+  /* Tab row */
+  .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tab {
+    padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border);
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    background: var(--card); color: var(--muted); transition: all 0.2s;
+    font-family: inherit;
+  }
+  .tab:hover { background: var(--card2); color: var(--text); }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Charts */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .chart-title .badge { font-size: 10px; background: var(--card2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; color: var(--muted); font-weight: 400; }
+  .chart-wrap { position: relative; height: 320px; }
+  .chart-wrap.tall { height: 380px; }
+  canvas { max-height: 100%; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tr:hover td { background: var(--card2); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+
+  /* Footer */
+  .footer { text-align: center; color: var(--muted); font-size: 10px; margin-top: 24px; padding: 16px 0; border-top: 1px solid var(--border); }
+
+  /* Loading */
+  .loading { display: flex; align-items: center; justify-content: center; height: 300px; color: var(--muted); font-size: 15px; }
+  .loading::after { content: ''; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; margin-left: 10px; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 800px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon">S</div>
+        <h1>Styra Performance</h1>
+      </div>
+      <div class="subtitle">Meta Ads &amp; Google Ads — consolidated dashboard</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="togglePeriod()" id="periodBtn">Last 12 Months</button>
+      <button class="btn" onclick="loadData()">&#8635; Refresh</button>
+      <div class="last-updated" id="lastUpdated"></div>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">Loading from Google Sheets</div>
+
+  <div id="content" style="display:none;">
+    <div class="stats" id="stats"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-view="overview">Overview</button>
+      <button class="tab" data-view="revenue">Revenue &amp; ROAS</button>
+      <button class="tab" data-view="leads">Leads &amp; Bookings</button>
+      <button class="tab" data-view="profitability">Profitability</button>
+      <button class="tab" data-view="channels">Channel Split</button>
+      <button class="tab" data-view="table">Data Table</button>
+    </div>
+
+    <div id="chartArea"></div>
+
+    <div class="footer">
+      Live data from Styra consolidated Google Sheet &middot; All values in &euro; EUR
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = '1xrxa3WkN0L3rd855tZDZYLgUZX4o76TS';
+const BASE_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq';
+
+let allData = null;
+let currentView = 'overview';
+let showAll = false;
+let charts = [];
+
+// ── Colour palette ──
+const C = {
+  accent: '#2f81f7', green: '#3fb950', red: '#f85149', gold: '#d29922',
+  purple: '#a371f7', orange: '#d18616', teal: '#39d353', pink: '#f778ba',
+  blue2: '#58a6ff', muted: '#7d8590',
+};
+
+// ── JSONP loader ──
+function _onSheetData(response) {
+  if (response.status !== 'ok') { showError('Error loading sheet'); return; }
+  try {
+    allData = parseSheet(response.table);
+    render();
+    document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  } catch (e) {
+    showError('Parse error: ' + e.message);
+    console.error(e);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loading').innerHTML = '<span style="color:#f85149">' + msg + '</span>';
+}
+
+function loadData() {
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('loading').innerHTML = 'Loading from Google Sheets';
+  document.getElementById('content').style.display = 'none';
+  var old = document.getElementById('sheetLoader');
+  if (old) old.remove();
+  var s = document.createElement('script');
+  s.id = 'sheetLoader';
+  s.src = BASE_URL + '?tqx=responseHandler:_onSheetData&gid=0';
+  s.onerror = function() { showError('Network error — check the sheet is shared publicly.'); };
+  document.body.appendChild(s);
+}
+
+// ── Parse ──
+function parseSheet(table) {
+  var rows = [];
+  for (var r = 0; r < table.rows.length; r++) {
+    var rc = table.rows[r].c;
+    var yearCell = rc[0], monthCell = rc[1];
+    if (!yearCell || !yearCell.v) continue;
+    var year = String(yearCell.v).trim();
+    if (!/^\d{4}$/.test(year)) continue;
+    var month = monthCell && monthCell.v ? String(monthCell.v).trim() : '';
+    if (!month) continue;
+
+    function num(idx) {
+      if (idx >= rc.length || !rc[idx]) return 0;
+      var v = rc[idx].v;
+      if (typeof v === 'number') return v;
+      if (typeof v === 'string') {
+        var n = parseFloat(v.replace(/[€£$,\s]/g, ''));
+        return isNaN(n) ? 0 : n;
+      }
+      return 0;
+    }
+
+    rows.push({
+      year: year,
+      month: month,
+      label: month.substring(0, 3) + ' ' + year.substring(2),
+      fee: num(2),
+      fbBudget: num(3),
+      gBudget: num(4),
+      investment: num(5),
+      bookings: num(6),
+      bookingsTarget: num(7),
+      bookingsValue: num(8),
+      metaLeads: num(9),
+      totalLeads: num(10),
+      leadsTarget: num(11),
+      metaValue: num(12),
+      ecomOrders: num(13),
+      ecomRevenue: num(14),
+      ecomNet1: num(15),
+      ecomNet2: num(16),
+      totalRevenue: num(17),
+      roas: num(18),
+      roiTarget: num(19),
+      marginAmount: num(20),
+      profitability: num(21),
+    });
+  }
+  return rows;
+}
+
+// ── Helpers ──
+function fmt(v) {
+  if (Math.abs(v) >= 1000000) return '€' + (v / 1000000).toFixed(2) + 'M';
+  if (Math.abs(v) >= 1000) return '€' + (v / 1000).toFixed(1) + 'K';
+  return '€' + Math.round(v).toLocaleString();
+}
+function fmtFull(v) { return '€' + Math.round(v).toLocaleString(); }
+function pct(v) { return v.toFixed(1) + '%'; }
+
+function getData() {
+  if (!allData) return [];
+  if (showAll) return allData;
+  return allData.slice(-12);
+}
+
+function togglePeriod() {
+  showAll = !showAll;
+  document.getElementById('periodBtn').textContent = showAll ? 'All Time' : 'Last 12 Months';
+  document.getElementById('periodBtn').classList.toggle('active', showAll);
+  render();
+}
+
+// ── Render orchestrator ──
+function render() {
+  var data = getData();
+  renderStats(data);
+  renderView(data, currentView);
+}
+
+// ── Stats cards ──
+function renderStats(data) {
+  if (!data.length) return;
+  var latest = data[data.length - 1];
+  var prev = data.length > 1 ? data[data.length - 2] : latest;
+
+  var totalRev = data.reduce(function(s, r) { return s + r.totalRevenue; }, 0);
+  var totalInv = data.reduce(function(s, r) { return s + r.investment; }, 0);
+  var totalProfit = data.reduce(function(s, r) { return s + r.profitability; }, 0);
+  var avgRoas = totalInv > 0 ? totalRev / totalInv : 0;
+  var totalLeads = data.reduce(function(s, r) { return s + r.bookings + r.metaLeads; }, 0);
+
+  var revChange = prev.totalRevenue > 0 ? ((latest.totalRevenue - prev.totalRevenue) / prev.totalRevenue * 100) : 0;
+  var roasChange = latest.roas - prev.roas;
+
+  document.getElementById('stats').innerHTML =
+    '<div class="stat-card">' +
+      '<div class="stat-label">Latest Revenue</div>' +
+      '<div class="stat-value green">' + fmtFull(latest.totalRevenue) + '</div>' +
+      '<div class="stat-sub ' + (revChange >= 0 ? 'green' : 'red') + '">' + (revChange >= 0 ? '+' : '') + pct(revChange) + ' vs prev</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+      '<div class="stat-label">Latest ROAS</div>' +
+      '<div class="stat-value ' + (latest.roas >= 10 ? 'green' : latest.roas >= 5 ? 'gold' : 'red') + '">' + latest.roas.toFixed(1) + 'x</div>' +
+      '<div class="stat-sub ' + (roasChange >= 0 ? 'green' : 'red') + '">' + (roasChange >= 0 ? '+' : '') + roasChange.toFixed(1) + 'x vs prev</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+      '<div class="stat-label">Total Revenue</div>' +
+      '<div class="stat-value blue">' + fmt(totalRev) + '</div>' +
+      '<div class="stat-sub" style="color:var(--muted)">' + data.length + ' months</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+      '<div class="stat-label">Total Invested</div>' +
+      '<div class="stat-value purple">' + fmt(totalInv) + '</div>' +
+      '<div class="stat-sub blue">Avg ROAS: ' + avgRoas.toFixed(1) + 'x</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+      '<div class="stat-label">Total Profit</div>' +
+      '<div class="stat-value ' + (totalProfit >= 0 ? 'green' : 'red') + '">' + fmt(totalProfit) + '</div>' +
+      '<div class="stat-sub" style="color:var(--muted)">After margins &amp; costs</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+      '<div class="stat-label">Total Leads</div>' +
+      '<div class="stat-value gold">' + totalLeads.toLocaleString() + '</div>' +
+      '<div class="stat-sub" style="color:var(--muted)">Bookings + Meta</div>' +
+    '</div>';
+}
+
+// ── Destroy all charts ──
+function destroyCharts() {
+  charts.forEach(function(c) { c.destroy(); });
+  charts = [];
+}
+
+// ── Chart defaults ──
+var gridColor = '#1b2332';
+var tickColor = '#7d8590';
+var tickFont = { size: 10 };
+function baseScales(yCallback) {
+  return {
+    x: { ticks: { color: tickColor, font: tickFont, maxRotation: 45 }, grid: { color: gridColor } },
+    y: { ticks: { color: tickColor, font: tickFont, callback: yCallback || fmt }, grid: { color: gridColor } }
+  };
+}
+function baseTooltip() {
+  return { backgroundColor: '#161b22', titleColor: '#e6edf3', bodyColor: '#ccc', borderColor: '#30363d', borderWidth: 1, padding: 10 };
+}
+
+// ── View renderers ──
+function renderView(data, view) {
+  destroyCharts();
+  var area = document.getElementById('chartArea');
+
+  if (view === 'overview') renderOverview(area, data);
+  else if (view === 'revenue') renderRevenue(area, data);
+  else if (view === 'leads') renderLeads(area, data);
+  else if (view === 'profitability') renderProfit(area, data);
+  else if (view === 'channels') renderChannels(area, data);
+  else if (view === 'table') renderTable(area, data);
+}
+
+// ── OVERVIEW ──
+function renderOverview(area, data) {
+  var labels = data.map(function(r) { return r.label; });
+  area.innerHTML =
+    '<div class="charts-grid">' +
+      '<div class="chart-card full"><div class="chart-title">Revenue vs Investment</div><div class="chart-wrap"><canvas id="c1"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">ROAS Trend <span class="badge">Target: 10x</span></div><div class="chart-wrap"><canvas id="c2"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">Monthly Profitability</div><div class="chart-wrap"><canvas id="c3"></canvas></div></div>' +
+    '</div>';
+
+  // Revenue vs Investment
+  charts.push(new Chart(document.getElementById('c1'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Total Revenue', data: data.map(function(r) { return r.totalRevenue; }),
+          borderColor: C.green, backgroundColor: 'rgba(63,185,80,0.08)', fill: true,
+          tension: 0.3, pointRadius: 3, borderWidth: 2.5 },
+        { label: 'Investment', data: data.map(function(r) { return r.investment; }),
+          borderColor: C.purple, backgroundColor: 'rgba(163,113,247,0.08)', fill: true,
+          tension: 0.3, pointRadius: 3, borderWidth: 2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 16 } }, tooltip: baseTooltip() },
+      scales: baseScales(),
+    }
+  }));
+
+  // ROAS
+  charts.push(new Chart(document.getElementById('c2'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'ROAS', data: data.map(function(r) { return r.roas; }),
+          borderColor: C.accent, backgroundColor: 'rgba(47,129,247,0.1)', fill: true,
+          tension: 0.3, pointRadius: 3, borderWidth: 2.5 },
+        { label: 'Target', data: data.map(function() { return 10; }),
+          borderColor: C.gold, borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 16 } }, tooltip: baseTooltip() },
+      scales: baseScales(function(v) { return v + 'x'; }),
+    }
+  }));
+
+  // Profitability
+  charts.push(new Chart(document.getElementById('c3'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Profit', data: data.map(function(r) { return r.profitability; }),
+        backgroundColor: data.map(function(r) { return r.profitability >= 0 ? 'rgba(63,185,80,0.7)' : 'rgba(248,81,73,0.7)'; }),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: baseTooltip() },
+      scales: baseScales(),
+    }
+  }));
+}
+
+// ── REVENUE & ROAS ──
+function renderRevenue(area, data) {
+  var labels = data.map(function(r) { return r.label; });
+  area.innerHTML =
+    '<div class="charts-grid">' +
+      '<div class="chart-card full"><div class="chart-title">Revenue Breakdown by Source</div><div class="chart-wrap tall"><canvas id="c1"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">Cumulative Revenue</div><div class="chart-wrap"><canvas id="c2"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">ROAS by Month</div><div class="chart-wrap"><canvas id="c3"></canvas></div></div>' +
+    '</div>';
+
+  // Revenue breakdown stacked
+  charts.push(new Chart(document.getElementById('c1'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Bookings Value', data: data.map(function(r) { return r.bookingsValue; }),
+          backgroundColor: C.accent, borderRadius: 2 },
+        { label: 'Meta Lead Value', data: data.map(function(r) { return r.metaValue; }),
+          backgroundColor: C.purple, borderRadius: 2 },
+        { label: 'E-Commerce', data: data.map(function(r) { return r.ecomRevenue; }),
+          backgroundColor: C.green, borderRadius: 2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 16 } },
+        tooltip: {
+          ...baseTooltip(),
+          callbacks: {
+            label: function(ctx) { return ctx.dataset.label + ': ' + fmtFull(ctx.parsed.y); },
+            footer: function(items) { var t = 0; items.forEach(function(i) { t += i.parsed.y; }); return 'Total: ' + fmtFull(t); }
+          }
+        }
+      },
+      scales: { x: { stacked: true, ticks: { color: tickColor, font: tickFont, maxRotation: 45 }, grid: { color: gridColor } },
+                y: { stacked: true, ticks: { color: tickColor, font: tickFont, callback: fmt }, grid: { color: gridColor } } }
+    }
+  }));
+
+  // Cumulative
+  var cumRev = []; var cum = 0;
+  data.forEach(function(r) { cum += r.totalRevenue; cumRev.push(cum); });
+  charts.push(new Chart(document.getElementById('c2'), {
+    type: 'line',
+    data: { labels: labels, datasets: [{ label: 'Cumulative Revenue', data: cumRev, borderColor: C.green, backgroundColor: 'rgba(63,185,80,0.1)', fill: true, tension: 0.3, pointRadius: 2, borderWidth: 2.5 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: baseTooltip() }, scales: baseScales() }
+  }));
+
+  // ROAS bar
+  charts.push(new Chart(document.getElementById('c3'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'ROAS', data: data.map(function(r) { return r.roas; }),
+        backgroundColor: data.map(function(r) { return r.roas >= 10 ? 'rgba(63,185,80,0.7)' : r.roas >= 5 ? 'rgba(210,153,34,0.7)' : 'rgba(248,81,73,0.7)'; }),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: baseTooltip() },
+      scales: baseScales(function(v) { return v + 'x'; }),
+    },
+    plugins: [{
+      id: 'targetLine',
+      afterDraw: function(chart) {
+        var y = chart.scales.y.getPixelForValue(10);
+        if (y > chart.scales.y.top && y < chart.scales.y.bottom) {
+          var ctx = chart.ctx; ctx.save(); ctx.beginPath(); ctx.setLineDash([6, 4]);
+          ctx.strokeStyle = C.gold; ctx.lineWidth = 1.5;
+          ctx.moveTo(chart.scales.x.left, y); ctx.lineTo(chart.scales.x.right, y); ctx.stroke();
+          ctx.fillStyle = C.gold; ctx.font = 'bold 10px sans-serif';
+          ctx.fillText('10x TARGET', chart.scales.x.right - 72, y - 6);
+          ctx.restore();
+        }
+      }
+    }]
+  }));
+}
+
+// ── LEADS & BOOKINGS ──
+function renderLeads(area, data) {
+  var labels = data.map(function(r) { return r.label; });
+  area.innerHTML =
+    '<div class="charts-grid">' +
+      '<div class="chart-card full"><div class="chart-title">Google Bookings vs Meta Leads</div><div class="chart-wrap"><canvas id="c1"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">Total Leads per Month</div><div class="chart-wrap"><canvas id="c2"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">E-Commerce Orders</div><div class="chart-wrap"><canvas id="c3"></canvas></div></div>' +
+    '</div>';
+
+  // Bookings vs Meta leads
+  charts.push(new Chart(document.getElementById('c1'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Google Bookings', data: data.map(function(r) { return r.bookings; }),
+          backgroundColor: 'rgba(47,129,247,0.7)', borderRadius: 3 },
+        { label: 'Meta Leads', data: data.map(function(r) { return r.metaLeads; }),
+          backgroundColor: 'rgba(163,113,247,0.7)', borderRadius: 3 },
+        { label: 'Bookings Target', data: data.map(function(r) { return r.bookingsTarget; }),
+          type: 'line', borderColor: C.accent, borderDash: [4, 3], borderWidth: 1.5, pointRadius: 0, fill: false },
+        { label: 'Leads Target', data: data.map(function(r) { return r.leadsTarget; }),
+          type: 'line', borderColor: C.purple, borderDash: [4, 3], borderWidth: 1.5, pointRadius: 0, fill: false },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 16 } }, tooltip: baseTooltip() },
+      scales: baseScales(function(v) { return v; }),
+    }
+  }));
+
+  // Total leads
+  charts.push(new Chart(document.getElementById('c2'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Total Leads', data: data.map(function(r) { return r.bookings + r.metaLeads; }),
+        borderColor: C.teal, backgroundColor: 'rgba(57,211,83,0.1)', fill: true,
+        tension: 0.3, pointRadius: 3, borderWidth: 2.5,
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: baseTooltip() }, scales: baseScales(function(v) { return v; }) }
+  }));
+
+  // E-com orders
+  charts.push(new Chart(document.getElementById('c3'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Orders', data: data.map(function(r) { return r.ecomOrders; }),
+        backgroundColor: 'rgba(209,134,22,0.7)', borderRadius: 4,
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: baseTooltip() }, scales: baseScales(function(v) { return v; }) }
+  }));
+}
+
+// ── PROFITABILITY ──
+function renderProfit(area, data) {
+  var labels = data.map(function(r) { return r.label; });
+  area.innerHTML =
+    '<div class="charts-grid">' +
+      '<div class="chart-card full"><div class="chart-title">Investment vs Revenue vs Profit</div><div class="chart-wrap tall"><canvas id="c1"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">Margin Amount (22%)</div><div class="chart-wrap"><canvas id="c2"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">Cumulative Profit</div><div class="chart-wrap"><canvas id="c3"></canvas></div></div>' +
+    '</div>';
+
+  // Revenue vs Investment vs Profit
+  charts.push(new Chart(document.getElementById('c1'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Revenue', data: data.map(function(r) { return r.totalRevenue; }),
+          borderColor: C.green, tension: 0.3, pointRadius: 3, borderWidth: 2.5, fill: false },
+        { label: 'Investment', data: data.map(function(r) { return r.investment; }),
+          borderColor: C.red, tension: 0.3, pointRadius: 3, borderWidth: 2, fill: false },
+        { label: 'Profit', data: data.map(function(r) { return r.profitability; }),
+          borderColor: C.gold, backgroundColor: 'rgba(210,153,34,0.08)', tension: 0.3, pointRadius: 3, borderWidth: 2, fill: true },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 16 } }, tooltip: baseTooltip() },
+      scales: baseScales(),
+    }
+  }));
+
+  // Margin
+  charts.push(new Chart(document.getElementById('c2'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Margin', data: data.map(function(r) { return r.marginAmount; }),
+        backgroundColor: 'rgba(88,166,255,0.6)', borderRadius: 4,
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: baseTooltip() }, scales: baseScales() }
+  }));
+
+  // Cumulative profit
+  var cumProfit = []; var cp = 0;
+  data.forEach(function(r) { cp += r.profitability; cumProfit.push(cp); });
+  charts.push(new Chart(document.getElementById('c3'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Cumulative Profit', data: cumProfit,
+        borderColor: cumProfit[cumProfit.length - 1] >= 0 ? C.green : C.red,
+        backgroundColor: cumProfit[cumProfit.length - 1] >= 0 ? 'rgba(63,185,80,0.1)' : 'rgba(248,81,73,0.1)',
+        fill: true, tension: 0.3, pointRadius: 2, borderWidth: 2.5,
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: baseTooltip() }, scales: baseScales() }
+  }));
+}
+
+// ── CHANNELS ──
+function renderChannels(area, data) {
+  var labels = data.map(function(r) { return r.label; });
+  var latest = data[data.length - 1];
+
+  area.innerHTML =
+    '<div class="charts-grid">' +
+      '<div class="chart-card"><div class="chart-title">Current Month — Revenue Split</div><div class="chart-wrap"><canvas id="c1"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">Current Month — Investment Split</div><div class="chart-wrap"><canvas id="c2"></canvas></div></div>' +
+      '<div class="chart-card full"><div class="chart-title">Ad Spend: Facebook vs Google</div><div class="chart-wrap"><canvas id="c3"></canvas></div></div>' +
+    '</div>';
+
+  // Revenue split doughnut
+  var revParts = [
+    { label: 'Bookings Value', value: latest.bookingsValue, color: C.accent },
+    { label: 'Meta Lead Value', value: latest.metaValue, color: C.purple },
+    { label: 'E-Commerce', value: latest.ecomRevenue, color: C.green },
+  ].filter(function(p) { return p.value > 0; });
+
+  charts.push(new Chart(document.getElementById('c1'), {
+    type: 'doughnut',
+    data: {
+      labels: revParts.map(function(p) { return p.label; }),
+      datasets: [{ data: revParts.map(function(p) { return p.value; }), backgroundColor: revParts.map(function(p) { return p.color; }), borderWidth: 0, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 12 } },
+        tooltip: { ...baseTooltip(), callbacks: { label: function(ctx) { return ctx.label + ': ' + fmtFull(ctx.parsed); } } }
+      }
+    }
+  }));
+
+  // Investment split doughnut
+  var invParts = [
+    { label: 'RPM Fee', value: latest.fee, color: C.orange },
+    { label: 'Facebook Ads', value: latest.fbBudget, color: C.accent },
+    { label: 'Google Ads', value: latest.gBudget, color: C.green },
+  ].filter(function(p) { return p.value > 0; });
+
+  charts.push(new Chart(document.getElementById('c2'), {
+    type: 'doughnut',
+    data: {
+      labels: invParts.map(function(p) { return p.label; }),
+      datasets: [{ data: invParts.map(function(p) { return p.value; }), backgroundColor: invParts.map(function(p) { return p.color; }), borderWidth: 0, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 12 } },
+        tooltip: { ...baseTooltip(), callbacks: { label: function(ctx) { return ctx.label + ': ' + fmtFull(ctx.parsed); } } }
+      }
+    }
+  }));
+
+  // FB vs Google over time
+  charts.push(new Chart(document.getElementById('c3'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Facebook Budget', data: data.map(function(r) { return r.fbBudget; }), backgroundColor: 'rgba(47,129,247,0.7)', borderRadius: 2 },
+        { label: 'Google Ads Budget', data: data.map(function(r) { return r.gBudget; }), backgroundColor: 'rgba(63,185,80,0.7)', borderRadius: 2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 16 } }, tooltip: baseTooltip() },
+      scales: { x: { stacked: true, ticks: { color: tickColor, font: tickFont, maxRotation: 45 }, grid: { color: gridColor } },
+                y: { stacked: true, ticks: { color: tickColor, font: tickFont, callback: fmt }, grid: { color: gridColor } } }
+    }
+  }));
+}
+
+// ── DATA TABLE ──
+function renderTable(area, data) {
+  var html = '<div class="chart-card full"><div class="chart-title">Full Data Table</div><div class="table-wrap"><table>' +
+    '<thead><tr>' +
+    '<th>Month</th><th class="num">Fee</th><th class="num">FB Spend</th><th class="num">Google Spend</th>' +
+    '<th class="num">Investment</th><th class="num">Bookings</th><th class="num">Meta Leads</th><th class="num">Total Leads</th>' +
+    '<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">Margin</th><th class="num">Profit</th>' +
+    '</tr></thead><tbody>';
+
+  for (var i = data.length - 1; i >= 0; i--) {
+    var r = data[i];
+    var roasClass = r.roas >= 10 ? 'pos' : r.roas >= 5 ? '' : 'neg';
+    var profClass = r.profitability >= 0 ? 'pos' : 'neg';
+    html += '<tr>' +
+      '<td>' + r.label + '</td>' +
+      '<td class="num">' + fmtFull(r.fee) + '</td>' +
+      '<td class="num">' + fmtFull(r.fbBudget) + '</td>' +
+      '<td class="num">' + fmtFull(r.gBudget) + '</td>' +
+      '<td class="num">' + fmtFull(r.investment) + '</td>' +
+      '<td class="num">' + r.bookings + '</td>' +
+      '<td class="num">' + r.metaLeads + '</td>' +
+      '<td class="num">' + (r.bookings + r.metaLeads) + '</td>' +
+      '<td class="num">' + fmtFull(r.totalRevenue) + '</td>' +
+      '<td class="num ' + roasClass + '">' + r.roas.toFixed(1) + 'x</td>' +
+      '<td class="num">' + fmtFull(r.marginAmount) + '</td>' +
+      '<td class="num ' + profClass + '">' + fmtFull(r.profitability) + '</td>' +
+    '</tr>';
+  }
+
+  html += '</tbody></table></div></div>';
+  area.innerHTML = html;
+}
+
+// ── Tab switching ──
+document.getElementById('tabs').addEventListener('click', function(e) {
+  if (!e.target.classList.contains('tab')) return;
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  e.target.classList.add('active');
+  currentView = e.target.dataset.view;
+  if (allData) render();
+});
+
+// ── Start ──
+loadData();
+</script>
+</body>
+</html>
