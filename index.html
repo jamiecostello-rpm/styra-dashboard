@@ -118,6 +118,64 @@
 </style>
 </head>
 <body>
+
+<!-- LOGIN GATE -->
+<div id="loginGate" style="display:flex; position:fixed; inset:0; z-index:9999; background:var(--bg); align-items:center; justify-content:center;">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:40px 36px; width:360px; text-align:center; box-shadow:0 8px 40px rgba(0,0,0,0.5); animation: fadeIn 0.5s ease;">
+    <div style="width:56px; height:56px; background:linear-gradient(135deg, var(--accent), var(--purple)); border-radius:14px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; color:#fff; margin:0 auto 16px;">S</div>
+    <h2 style="font-size:20px; font-weight:700; margin-bottom:4px;">Stira Performance</h2>
+    <p style="color:var(--muted); font-size:13px; margin-bottom:24px;">Enter password to access dashboard</p>
+    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password"
+      style="width:100%; padding:12px 16px; border-radius:10px; border:1px solid var(--border); background:var(--card2); color:var(--text); font-size:14px; font-family:inherit; outline:none; margin-bottom:12px; transition:border-color 0.2s;"
+      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+    <div id="loginError" style="color:var(--red); font-size:12px; margin-bottom:12px; min-height:18px;"></div>
+    <button onclick="attemptLogin()" style="width:100%; padding:12px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--accent), var(--purple)); color:#fff; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; transition:opacity 0.2s;">
+      Sign In
+    </button>
+  </div>
+</div>
+
+<style>
+  @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+</style>
+
+<script>
+  // Simple hash for basic obfuscation (not cryptographically secure)
+  function simpleHash(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + c;
+      hash |= 0;
+    }
+    return hash;
+  }
+
+  var PASS_HASH = simpleHash('Stira2025'); // -1197567,424 — hashed password
+
+  function attemptLogin() {
+    var pw = document.getElementById('loginPassword').value;
+    if (simpleHash(pw) === PASS_HASH) {
+      sessionStorage.setItem('stira_auth', '1');
+      document.getElementById('loginGate').style.display = 'none';
+    } else {
+      document.getElementById('loginError').textContent = 'Incorrect password. Please try again.';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginPassword').focus();
+    }
+  }
+
+  // Enter key support
+  document.getElementById('loginPassword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') attemptLogin();
+  });
+
+  // Check session
+  if (sessionStorage.getItem('stira_auth') === '1') {
+    document.getElementById('loginGate').style.display = 'none';
+  }
+</script>
+
 <div class="container">
   <div class="header">
     <div class="header-left">
