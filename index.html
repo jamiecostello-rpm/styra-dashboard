@@ -204,6 +204,7 @@
       <button class="tab" data-view="profitability">Profitability</button>
       <button class="tab" data-view="channels">Channel Split</button>
       <button class="tab" data-view="table">Data Table</button>
+      <button class="tab" data-view="agents">AI Agents</button>
     </div>
 
     <div id="chartArea"></div>
@@ -415,6 +416,7 @@ function baseTooltip() {
 function renderView(data, view) {
   destroyCharts();
   var area = document.getElementById('chartArea');
+  if (view === 'agents') { renderAgents(area); return; }
 
   if (view === 'overview') renderOverview(area, data);
   else if (view === 'revenue') renderRevenue(area, data);
@@ -807,6 +809,110 @@ function renderTable(area, data) {
   html += '</tbody></table></div></div>';
   area.innerHTML = html;
 }
+
+
+// ── AI AGENTS (WhatsApp agent + website widget) ──
+// Data comes from agents.json in this repo, rebuilt by
+// cita-workspace/clients/stira/dashboard/build_agent_funnel.py from GoHighLevel.
+var agentData = null;
+fetch('agents.json?ts=' + Date.now()).then(function(r) { return r.json(); }).then(function(j) {
+  agentData = j; if (currentView === 'agents' && allData) render();
+}).catch(function() { agentData = { error: true }; });
+
+function rate(n, d) { return d ? Math.round(n / d * 100) + '%' : '–'; }
+function sum(rows, k) { return rows.reduce(function(a, r) { return a + (r[k] || 0); }, 0); }
+function wkLabel(w) { var d = new Date(w + 'T00:00:00'); return d.getDate() + ' ' + d.toLocaleString('en-GB', { month: 'short' }); }
+
+function renderAgents(area) {
+  if (!agentData) { area.innerHTML = '<div class="loading">Loading agent data</div>'; return; }
+  if (agentData.error || !agentData.weeks) { area.innerHTML = '<div class="chart-card full"><div class="chart-title">AI Agents</div><p style="color:var(--muted);font-size:13px">agents.json not found. Run build_agent_funnel.py and push.</p></div>'; return; }
+  var rows = agentData.weeks;
+  var last = rows[rows.length - 1] || {};
+  var labels = rows.map(function(r) { return wkLabel(r.week_start); });
+  var haveOutcomes = rows.some(function(r) { return r.booked !== null && r.booked !== undefined; });
+
+  var html =
+    '<div class="stats" style="margin-bottom:18px">' +
+      card('Leads messaged (WhatsApp)', sum(rows, 'wa_messaged'), 'since go-live 30 Jul', 'blue') +
+      card('Replied to the agent', rate(sum(rows, 'wa_replied'), sum(rows, 'wa_messaged')), sum(rows, 'wa_replied') + ' leads', 'green') +
+      card('Handed to the team', rate(sum(rows, 'wa_handed_over'), sum(rows, 'wa_messaged')), sum(rows, 'wa_handed_over') + ' handovers', 'purple') +
+      card('Median first reply', (last.wa_median_first_response_min !== null && last.wa_median_first_response_min !== undefined) ? last.wa_median_first_response_min + ' min' : '–', 'this week', 'gold') +
+      card('Call agreed, of those who replied', rate(sum(rows, 'wa_handed_over'), sum(rows, 'wa_replied')), 'appointment booking rate', 'green') +
+      card('Widget chats', sum(rows, 'widget_chats'), sum(rows, 'widget_survey_links') + ' survey links sent', 'blue') +
+      card('Appointments booked', haveOutcomes ? sum(rows, 'booked') : '–', haveOutcomes ? 'from Stira calendar' : 'awaiting calendar access', haveOutcomes ? 'green' : 'red') +
+    '</div>' +
+    widgetToFormBlock() +
+    '<div class="charts-grid">' +
+      '<div class="chart-card full"><div class="chart-title">WhatsApp agent funnel per week: messaged, replied, handed to the team</div><div class="chart-wrap"><canvas id="a1"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">Reply rate and handover rate</div><div class="chart-wrap"><canvas id="a2"></canvas></div></div>' +
+      '<div class="chart-card"><div class="chart-title">Website chat widget per week</div><div class="chart-wrap"><canvas id="a3"></canvas></div></div>' +
+    '</div>' +
+    '<div class="chart-card full" style="margin-top:14px"><div class="chart-title">Weekly table</div><div class="table-wrap"><table>' +
+    '<thead><tr><th>Week of</th><th class="num">Messaged</th><th class="num">Replied</th><th class="num">Reply rate</th><th class="num">Handed over</th><th class="num">Handover rate</th><th class="num">Call agreed of replies</th><th class="num">Median first reply</th><th class="num">Widget chats</th><th class="num">Survey links</th><th class="num">Called</th><th class="num">Booked</th><th class="num">Sold</th></tr></thead><tbody>';
+  for (var i = rows.length - 1; i >= 0; i--) {
+    var r = rows[i];
+    var v2 = agentData.v2_live && r.week_start >= agentData.v2_live.slice(0, 10) ? ' <span style="color:var(--green);font-size:10px">V2</span>' : '';
+    html += '<tr><td>' + wkLabel(r.week_start) + v2 + '</td>' +
+      '<td class="num">' + r.wa_messaged + '</td><td class="num">' + r.wa_replied + '</td><td class="num">' + rate(r.wa_replied, r.wa_messaged) + '</td>' +
+      '<td class="num">' + r.wa_handed_over + '</td><td class="num">' + rate(r.wa_handed_over, r.wa_messaged) + '</td>' +
+      '<td class="num">' + rate(r.wa_handed_over, r.wa_replied) + '</td>' +
+      '<td class="num">' + (r.wa_median_first_response_min == null ? '–' : r.wa_median_first_response_min + ' min') + '</td>' +
+      '<td class="num">' + r.widget_chats + '</td><td class="num">' + r.widget_survey_links + '</td>' +
+      dim(r.called) + dim(r.booked) + dim(r.sold) + '</tr>';
+  }
+  html += '</tbody></table></div>' +
+    '<p style="color:var(--muted);font-size:11px;margin-top:10px">Messaged, replied, handed over and widget figures are read from the conversation system. Called, booked and sold need Stira\'s appointment calendar and Zoho, which we do not have access to yet; those columns stay blank until then. Data generated ' + (agentData.generated || '').replace('T', ' ').slice(0, 16) + ' UTC.</p>' + (agentData.notes || []).map(function(n) { return '<p style="color:var(--gold);font-size:11px;margin-top:6px">' + n + '</p>'; }).join('') + '</div>';
+  area.innerHTML = html;
+
+  charts.push(new Chart(document.getElementById('a1'), {
+    type: 'bar',
+    data: { labels: labels, datasets: [
+      { label: 'Messaged', data: rows.map(function(r) { return r.wa_messaged; }), backgroundColor: 'rgba(47,129,247,0.7)', borderRadius: 3 },
+      { label: 'Replied', data: rows.map(function(r) { return r.wa_replied; }), backgroundColor: 'rgba(63,185,80,0.7)', borderRadius: 3 },
+      { label: 'Handed to team', data: rows.map(function(r) { return r.wa_handed_over; }), backgroundColor: 'rgba(163,113,247,0.7)', borderRadius: 3 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 16 } }, tooltip: baseTooltip() }, scales: baseScales(function(v) { return v; }) }
+  }));
+  charts.push(new Chart(document.getElementById('a2'), {
+    type: 'line',
+    data: { labels: labels, datasets: [
+      { label: 'Reply rate %', data: rows.map(function(r) { return r.wa_messaged ? Math.round(r.wa_replied / r.wa_messaged * 100) : null; }), borderColor: C.green, backgroundColor: 'rgba(63,185,80,0.1)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 },
+      { label: 'Handover rate %', data: rows.map(function(r) { return r.wa_messaged ? Math.round(r.wa_handed_over / r.wa_messaged * 100) : null; }), borderColor: C.purple, tension: 0.3, pointRadius: 3, borderWidth: 2, fill: false },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 16 } }, tooltip: baseTooltip() }, scales: baseScales(function(v) { return v + '%'; }) }
+  }));
+  charts.push(new Chart(document.getElementById('a3'), {
+    type: 'bar',
+    data: { labels: labels, datasets: [
+      { label: 'Chats', data: rows.map(function(r) { return r.widget_chats; }), backgroundColor: 'rgba(47,129,247,0.7)', borderRadius: 3 },
+      { label: 'Visitor wrote back', data: rows.map(function(r) { return r.widget_engaged; }), backgroundColor: 'rgba(209,134,22,0.7)', borderRadius: 3 },
+      { label: 'Survey link sent', data: rows.map(function(r) { return r.widget_survey_links; }), backgroundColor: 'rgba(57,211,83,0.7)', borderRadius: 3 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#ccc', font: { size: 11 }, boxWidth: 10, padding: 16 } }, tooltip: baseTooltip() }, scales: baseScales(function(v) { return v; }) }
+  }));
+}
+// Widget to survey form: visitors are anonymous, so we time it. A survey link sent by the widget,
+// then a form lead arriving within five minutes, judged against how often a form lead lands by chance.
+function widgetToFormBlock() {
+  var W = agentData.widget_to_form; if (!W) return '';
+  return '<div class="chart-card full" style="margin-bottom:18px"><div class="chart-title">Website widget to Free Home Survey form</div>' +
+    '<div class="stats" style="margin-bottom:10px">' +
+      card('Survey links sent by the widget', W.link_sends, 'since go-live', 'blue') +
+      card('Form filled within 5 minutes', W.form_within_5min, rate(W.form_within_5min, W.link_sends) + ' of link sends', 'green') +
+      card('Expected by chance', W.expected_by_chance_5min, 'form leads land about ' + rate(Math.round(W.expected_by_chance_5min), W.link_sends) + ' of the time anyway', 'gold') +
+      card('Form fills the widget produced', W.net_attributed_5min, 'above chance, 5-minute window', 'purple') +
+    '</div>' +
+    (W.value_per_form_eur ? '<div class="stats" style="margin-bottom:10px">' +
+      card('Value per survey form', '€' + W.value_per_form_eur, 'Stira\'s own lead valuation', 'gold') +
+      card('Value of widget form fills', fmtFull(W.net_attributed_5min * W.value_per_form_eur), W.net_attributed_5min + ' forms since go-live', 'green') +
+      card('Per month at this rate', fmtFull(W.net_attributed_5min * W.value_per_form_eur / (W.days_covered || 46) * 30.4), Math.round(W.net_attributed_5min / (W.days_covered || 46) * 30.4) + ' survey forms a month', 'green') +
+    '</div>' : '') +
+    '<p style="color:var(--muted);font-size:11px">Widget visitors are anonymous, so this is timed rather than name-matched: the widget sends the survey link, and a form lead arrives in the following five minutes. Chance is worked out from how often form leads arrive across the whole period. Within 15 minutes: ' + W.form_within_15min + ' against ' + W.expected_by_chance_15min + ' expected.' + (W.value_basis ? ' ' + W.value_basis : '') + '</p></div>';
+}
+function card(label, value, sub, cls) {
+  return '<div class="stat-card"><div class="stat-label">' + label + '</div><div class="stat-value ' + cls + '">' + value + '</div><div class="stat-sub" style="color:var(--muted)">' + sub + '</div></div>';
+}
+function dim(v) { return v === null || v === undefined ? '<td class="num" style="color:var(--border)">–</td>' : '<td class="num">' + v + '</td>'; }
 
 // ── Tab switching ──
 document.getElementById('tabs').addEventListener('click', function(e) {
