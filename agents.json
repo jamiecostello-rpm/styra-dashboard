@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-11T23:54+00:00",
+ "generated": "2026-09-15T11:44+00:00",
  "go_live": "2026-07-30",
  "v2_live": "2026-09-12",
  "source": "GoHighLevel conversations (WhatsApp agent + website widget). Called/booked/sold from agent-outcomes.csv until Stira calendar and Zoho access exist.",
@@ -96,35 +96,50 @@
   },
   {
    "week_start": "2026-09-07",
-   "wa_messaged": 64,
-   "wa_replied": 53,
-   "wa_handed_over": 36,
-   "wa_no_reply_from_agent": 0,
-   "widget_chats": 29,
-   "widget_engaged": 29,
-   "widget_survey_links": 22,
+   "wa_messaged": 86,
+   "wa_replied": 74,
+   "wa_handed_over": 49,
+   "wa_no_reply_from_agent": 1,
+   "widget_chats": 39,
+   "widget_engaged": 39,
+   "widget_survey_links": 28,
    "wa_median_first_response_min": 1.1,
+   "called": null,
+   "booked": null,
+   "sold": null,
+   "note": ""
+  },
+  {
+   "week_start": "2026-09-14",
+   "wa_messaged": 16,
+   "wa_replied": 13,
+   "wa_handed_over": 9,
+   "wa_no_reply_from_agent": 0,
+   "widget_chats": 3,
+   "widget_engaged": 3,
+   "widget_survey_links": 3,
+   "wa_median_first_response_min": 0.7,
    "called": null,
    "booked": null,
    "sold": null,
    "note": ""
   }
  ],
+ "widget_to_form": {
+  "link_sends": 136,
+  "form_within_5min": 44,
+  "expected_by_chance_5min": 6.3,
+  "form_within_15min": 54,
+  "expected_by_chance_15min": 18.0,
+  "net_attributed_5min": 38,
+  "widget_chats": 216,
+  "form_leads": 639,
+  "value_per_form_eur": 300,
+  "days_covered": 49,
+  "value_basis": "\u20ac300 is the value Stira's consolidated sheet carries for a lead. Counted only where the widget sent the survey link and the form was filled straight after, less what would have arrived anyway."
+ },
  "notes": [
   "WhatsApp link to the agent was down from 31 Jul to 19 Aug (three logouts). Opening messages were queued but not delivered, so replies for those weeks are near zero. Counts from 17 Aug onward are the real baseline.",
-  "V2 agent live from 12 Sep. The week of 7 Sep is partial."
- ],
- "widget_to_form": {
-  "link_sends": 127,
-  "form_within_5min": 42,
-  "expected_by_chance_5min": 6.0,
-  "form_within_15min": 50,
-  "expected_by_chance_15min": 17.1,
-  "net_attributed_5min": 36,
-  "widget_chats": 203,
-  "form_leads": 601,
-  "value_per_form_eur": 300,
-  "value_basis": "\u20ac300 is the value Stira's consolidated sheet carries for a lead. Counted only where the widget sent the survey link and the form was filled straight after, less what would have arrived anyway.",
-  "days_covered": 46
- }
+  "V2 agent live from 12 Sep. The current week is partial."
+ ]
 }
