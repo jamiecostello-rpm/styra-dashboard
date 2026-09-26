@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-25T11:08+00:00",
+ "generated": "2026-09-26T11:08+00:00",
  "go_live": "2026-07-30",
  "v2_live": "2026-09-12",
  "widget_to_form": {
@@ -12,7 +12,7 @@
   "widget_chats": 256,
   "form_leads": 659,
   "value_per_form_eur": 300,
-  "days_covered": 59,
+  "days_covered": 60,
   "value_basis": "\u20ac300 is the value Stira's consolidated sheet carries for a lead. Counted only where the widget sent the survey link and the form was filled straight after, less what would have arrived anyway."
  },
  "source": "GoHighLevel conversations (WhatsApp agent + website widget). Called/booked/sold from agent-outcomes.csv until Stira calendar and Zoho access exist.",
