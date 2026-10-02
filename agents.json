@@ -1,15 +1,15 @@
 {
- "generated": "2026-10-02T11:21+00:00",
+ "generated": "2026-10-02T15:27+00:00",
  "go_live": "2026-07-30",
  "v2_live": "2026-09-12",
  "widget_to_form": {
-  "link_sends": 186,
+  "link_sends": 187,
   "form_within_5min": 44,
-  "expected_by_chance_5min": 8.1,
+  "expected_by_chance_5min": 8.2,
   "form_within_15min": 54,
-  "expected_by_chance_15min": 23.3,
+  "expected_by_chance_15min": 23.5,
   "net_attributed_5min": 36,
-  "widget_chats": 291,
+  "widget_chats": 293,
   "form_leads": 659,
   "value_per_form_eur": 300,
   "days_covered": 66,
@@ -158,9 +158,9 @@
    "wa_replied": 0,
    "wa_handed_over": 0,
    "wa_no_reply_from_agent": 0,
-   "widget_chats": 28,
-   "widget_engaged": 28,
-   "widget_survey_links": 19,
+   "widget_chats": 30,
+   "widget_engaged": 30,
+   "widget_survey_links": 20,
    "wa_median_first_response_min": null,
    "called": null,
    "booked": null,
@@ -171,6 +171,7 @@
  "notes": [
   "WhatsApp link to the agent was down from 31 Jul to 19 Aug (three logouts). Opening messages were queued but not delivered, so replies for those weeks are near zero. Counts from 17 Aug onward are the real baseline.",
   "V2 agent live from 12 Sep. The current week is partial.",
-  "14 to 17 Sep: the website lead feed from Zoho was dropping leads and delivered none on the 16th, so fewer leads reached the agent that week. Facebook leads were unaffected."
+  "14 to 17 Sep: the website lead feed from Zoho was dropping leads and delivered none on the 16th, so fewer leads reached the agent that week. Facebook leads were unaffected.",
+  "From 18 Sep the lead feed into the agent stopped (the gateway it posted to was retired) and the WhatsApp link was being moved to a new gateway account, so the agent sent no messages from the week of 21 Sep. Enquiries were handled directly from Zoho by the Stira team. Website chat was unaffected. The widget-to-form figure above cannot count matches for this period because the form leads did not reach the system."
  ]
 }
