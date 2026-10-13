@@ -1,18 +1,18 @@
 {
- "generated": "2026-10-12T11:08+00:00",
+ "generated": "2026-10-13T02:02+00:00",
  "go_live": "2026-07-30",
  "v2_live": "2026-09-12",
  "widget_to_form": {
-  "link_sends": 218,
+  "link_sends": 223,
   "form_within_5min": 47,
-  "expected_by_chance_5min": 7.1,
+  "expected_by_chance_5min": 7.3,
   "form_within_15min": 57,
-  "expected_by_chance_15min": 20.7,
+  "expected_by_chance_15min": 21.3,
   "net_attributed_5min": 40,
-  "widget_chats": 343,
-  "form_leads": 706,
+  "widget_chats": 349,
+  "form_leads": 715,
   "value_per_form_eur": 300,
-  "days_covered": 76,
+  "days_covered": 77,
   "value_basis": "\u20ac300 is the value Stira's consolidated sheet carries for a lead. Counted only where the widget sent the survey link and the form was filled straight after, less what would have arrived anyway."
  },
  "source": "GoHighLevel conversations (WhatsApp agent + website widget). Called/booked/sold from agent-outcomes.csv until Stira calendar and Zoho access exist.",
@@ -184,13 +184,13 @@
   },
   {
    "week_start": "2026-10-12",
-   "wa_messaged": 9,
-   "wa_replied": 8,
-   "wa_handed_over": 2,
-   "wa_no_reply_from_agent": 6,
-   "widget_chats": 5,
-   "widget_engaged": 5,
-   "widget_survey_links": 2,
+   "wa_messaged": 18,
+   "wa_replied": 16,
+   "wa_handed_over": 3,
+   "wa_no_reply_from_agent": 13,
+   "widget_chats": 11,
+   "widget_engaged": 11,
+   "widget_survey_links": 7,
    "wa_median_first_response_min": 0.8,
    "called": null,
    "booked": null,
@@ -202,6 +202,19 @@
   "WhatsApp link to the agent was down from 31 Jul to 19 Aug (three logouts). Opening messages were queued but not delivered, so replies for those weeks are near zero. Counts from 17 Aug onward are the real baseline.",
   "V2 agent live from 12 Sep. The current week is partial.",
   "14 to 17 Sep: the website lead feed from Zoho was dropping leads and delivered none on the 16th, so fewer leads reached the agent that week. Facebook leads were unaffected.",
-  "From 18 Sep the lead feed into the agent stopped (the gateway it posted to was retired) and the WhatsApp link was being moved to a new gateway account, so the agent sent no messages from the week of 21 Sep. Enquiries were handled directly from Zoho by the Stira team. Website chat was unaffected. The widget-to-form figure above cannot count matches for this period because the form leads did not reach the system."
- ]
+  "From 18 Sep the lead feed into the agent stopped (the gateway it posted to was retired) while the WhatsApp link moved to a new gateway account, so the agent sent no messages in the weeks of 21 and 28 Sep and the Stira team worked those enquiries from Zoho. Leads started reaching the agent again on 6 Oct, at first without names (the team worked those from Zoho), and have arrived complete since 8 Oct. Website chat was unaffected. The widget-to-form figure above cannot count 18 Sep to 6 Oct because form leads did not reach the system then.",
+  "12 Oct, 09:30 to 19:45: the agent could not reply because the AI account behind it ran out of credit. The 14 customers who wrote in during that time were passed to the Stira team to answer."
+ ],
+ "handovers": {
+  "total": 251,
+  "since_relaunch": 23,
+  "relaunch_week": "2026-10-05",
+  "value_per_lead_eur": 300,
+  "checked": {
+   "on": "13 Oct 2026",
+   "read": 23,
+   "genuine": 22,
+   "note": "22 of the 23 handovers since 1 Oct were customers asking for a call or agreeing a time. One was an existing customer whose Stira had already been fitted."
+  }
+ }
 }

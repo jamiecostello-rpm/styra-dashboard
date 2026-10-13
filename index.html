@@ -842,6 +842,7 @@ function renderAgents(area) {
       card('Appointments booked', haveOutcomes ? sum(rows, 'booked') : '–', haveOutcomes ? 'from Stira calendar' : 'awaiting calendar access', haveOutcomes ? 'green' : 'red') +
     '</div>' +
     widgetToFormBlock() +
+    handoverBlock() +
     '<div class="charts-grid">' +
       '<div class="chart-card full"><div class="chart-title">WhatsApp agent funnel per week: messaged, replied, handed to the team</div><div class="chart-wrap"><canvas id="a1"></canvas></div></div>' +
       '<div class="chart-card"><div class="chart-title">Reply rate and handover rate</div><div class="chart-wrap"><canvas id="a2"></canvas></div></div>' +
@@ -908,6 +909,36 @@ function widgetToFormBlock() {
       card('Per month at this rate', fmtFull(W.net_attributed_5min * W.value_per_form_eur / (W.days_covered || 46) * 30.4), Math.round(W.net_attributed_5min / (W.days_covered || 46) * 30.4) + ' survey forms a month', 'green') +
     '</div>' : '') +
     '<p style="color:var(--muted);font-size:11px">Widget visitors are anonymous, so this is timed rather than name-matched: the widget sends the survey link, and a form lead arrives in the following five minutes. Chance is worked out from how often form leads arrive across the whole period. Within 15 minutes: ' + W.form_within_15min + ' against ' + W.expected_by_chance_15min + ' expected.' + (W.value_basis ? ' ' + W.value_basis : '') + '</p></div>';
+}
+// Leads the WhatsApp agent handed to the Stira team, valued like the widget forms at Stira's own €300 a lead.
+// They came from Stira's ads and website, so the other tabs already count them as leads: this shows how many the
+// agent brought to a requested call, not extra leads. The calculator turns them into fitted sales once Stira gives
+// its close rate on handed-over leads, which is the number that settles what the agent is worth.
+var handoverTotal = 0;
+function handoverBlock() {
+  var H = agentData.handovers; if (!H) return '';
+  handoverTotal = H.total;
+  var ck = H.checked || {};
+  var inp = 'background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 6px;margin-left:4px';
+  return '<div class="chart-card full" style="margin-bottom:18px"><div class="chart-title">Leads the WhatsApp agent handed to the Stira team</div>' +
+    '<div class="stats" style="margin-bottom:10px">' +
+      card('Handed to the team', H.total, 'since go-live 30 Jul', 'purple') +
+      card('Since the relaunch', H.since_relaunch, 'from the week of ' + wkLabel(H.relaunch_week), 'blue') +
+      card('Value at €' + H.value_per_lead_eur + ' a lead', fmtFull(H.total * H.value_per_lead_eur), 'Stira\'s own lead valuation', 'green') +
+      (ck.read ? card('Checked by hand', ck.genuine + ' of ' + ck.read, 'recent handovers read against the customer\'s own words, ' + ck.on, 'gold') : '') +
+    '</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:13px;margin:4px 0 12px">' +
+      '<span style="color:var(--muted)">In fitted sales:</span>' +
+      '<label>close rate on handed-over leads<input id="hoRate" type="number" min="0" max="100" placeholder="%" oninput="calcHandover()" style="width:64px;' + inp + '"> %</label>' +
+      '<label>average job €<input id="hoJob" type="number" min="0" value="730" oninput="calcHandover()" style="width:84px;' + inp + '"></label>' +
+      '<strong id="hoOut" style="color:var(--green)">Enter Stira\'s close rate</strong>' +
+    '</div>' +
+    '<p style="color:var(--muted);font-size:11px">These leads came from Stira\'s ads and website, so the other tabs already count them as leads. Don\'t add this value to the ads return or to the widget figure above: it shows how many of those leads the agent brought to a requested call, usually within a minute of their reply, day or night. ' + (ck.note || '') + ' €730 is the starting price for a fitted Stira. The real figure needs the Zoho outcome for each handover.</p></div>';
+}
+function calcHandover() {
+  var r = parseFloat(document.getElementById('hoRate').value), j = parseFloat(document.getElementById('hoJob').value), out = document.getElementById('hoOut');
+  if (isNaN(r) || isNaN(j)) { out.textContent = 'Enter Stira\'s close rate'; return; }
+  out.textContent = Math.round(handoverTotal * r / 100) + ' fitted sales, ' + fmtFull(handoverTotal * r / 100 * j);
 }
 function card(label, value, sub, cls) {
   return '<div class="stat-card"><div class="stat-label">' + label + '</div><div class="stat-value ' + cls + '">' + value + '</div><div class="stat-sub" style="color:var(--muted)">' + sub + '</div></div>';
